@@ -16,7 +16,7 @@ function Login() {
     setError('');
     setLoading(true);
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/token/', {
+      const response = await axios.post('https://sslc-tracker.onrender.com/api/token/', {
         username,
         password,
       });
