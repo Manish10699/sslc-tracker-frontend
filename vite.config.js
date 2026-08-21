@@ -20,7 +20,7 @@ export default defineConfig({
         background_color: '#f9fafb',
 
         display: 'standalone',
-        start_url: '/',
+        start_url: '/login',
         scope: '/',
 
         icons: [
