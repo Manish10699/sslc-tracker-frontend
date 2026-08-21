@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from './auth';
 
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api',
+  baseURL: 'https://sslc-tracker.onrender.com/api',
 });
 
 api.interceptors.request.use((config) => {
@@ -22,7 +22,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const refreshToken = getRefreshToken();
-        const response = await axios.post('http://127.0.0.1:8000/api/token/refresh/', {
+        const response = await axios.post('https://sslc-tracker.onrender.com/api/token/refresh/', {
           refresh: refreshToken,
         });
         saveTokens(response.data.access, refreshToken);
