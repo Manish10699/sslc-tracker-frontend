@@ -4,14 +4,15 @@ import api from '../api';
 const MONTHS = ['May', 'June', 'July', 'August', 'September', 'October',
   'November', 'December', 'January', 'February', 'March', 'April'];
 
-function EntryForm({ point, existingEntry, onSaved, onCancel }) {
+function EntryForm({ point, month, existingEntry, onSaved, onCancel }) {
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(null);
-    const [formData, setFormData] = useState(() => {
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState(() => {
     if (existingEntry) {
       return { ...existingEntry.data, month: existingEntry.month };
     }
-    return {};
+    return { month };
   });
 
   const handleChange = (id, value) => {
@@ -34,44 +35,45 @@ function EntryForm({ point, existingEntry, onSaved, onCancel }) {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const payload = { point: point.id, data: { ...formData } };
-      if (point.group === 'A') {
-        payload.month = formData.month;
-        delete payload.data.month;
-      }
-      if (existingEntry) {
-        await api.patch(`/entries/${existingEntry.id}/`, payload);
-      } else {
-        await api.post('/entries/', payload);
-      }
-      onSaved();
-    } catch (error) {
-      console.error('Failed to save entry', error);
-    } finally {
-      setSaving(false);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+  setSaving(true);
+  try {
+    const payload = { point: point.id, month: formData.month, data: { ...formData } };
+    delete payload.data.month;
+    if (existingEntry) {
+      await api.patch(`/entries/${existingEntry.id}/`, payload);
+    } else {
+      await api.post('/entries/', payload);
     }
-  };
+    onSaved();
+  } catch (err) {
+  console.log('Backend error:', err.response?.data);
+
+  const data = err.response?.data;
+
+  const message =
+    data?.non_field_errors?.[0] ||
+    data?.month?.[0] ||
+    data?.point?.[0] ||
+    data?.academic_year?.[0] ||
+    'Failed to save entry';
+
+  setError(message);
+}finally {
+    setSaving(false);
+  }
+};
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm space-y-4">
-      {point.group === 'A' && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
-          <select
-            required
-            value={formData.month || ''}
-            onChange={(e) => handleChange('month', e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="" disabled>Select month</option>
-            {MONTHS.map((m) => <option key={m} value={m}>{m}</option>)}
-          </select>
-        </div>
-      )}
+      {error && <div className="bg-red-50 text-red-600 text-sm rounded-lg p-3">{error}</div>}
+      
+        <div className="bg-indigo-50 text-indigo-700 text-sm font-medium rounded-xl px-4 py-2.5">
+  Adding entry for: {month}
+</div>
+      
 
       {point.columns.map((col) => (
         <div key={col.id}>
@@ -128,53 +130,53 @@ function EntryForm({ point, existingEntry, onSaved, onCancel }) {
           )}
 
           {col.type === 'photo' && (
-  <div>
-    <label
-      htmlFor={`photo-${col.id}`}
-      className="flex flex-col items-center justify-center w-full h-32 
+            <div>
+              <label
+                htmlFor={`photo-${col.id}`}
+                className="flex flex-col items-center justify-center w-full h-32 
                  border-2 border-dashed border-gray-200 rounded-xl 
                  bg-gray-50 hover:bg-indigo-50 hover:border-indigo-300 
                  cursor-pointer transition"
-    >
-      <div className="text-2xl mb-2">📷</div>
+              >
+                <div className="text-2xl mb-2">📷</div>
 
-      <p className="text-sm font-semibold text-gray-700">
-        Upload Photo
-      </p>
+                <p className="text-sm font-semibold text-gray-700">
+                  Upload Photo
+                </p>
 
-      <p className="text-xs text-gray-400 mt-1">
-        JPG, PNG or JPEG
-      </p>
-    </label>
+                <p className="text-xs text-gray-400 mt-1">
+                  JPG, PNG or JPEG
+                </p>
+              </label>
 
-    <input
-      id={`photo-${col.id}`}
-      type="file"
-      accept="image/*"
-      className="hidden"
-      onChange={(e) =>
-        e.target.files[0] &&
-        handlePhotoUpload(col.id, e.target.files[0])
-      }
-    />
+              <input
+                id={`photo-${col.id}`}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) =>
+                  e.target.files[0] &&
+                  handlePhotoUpload(col.id, e.target.files[0])
+                }
+              />
 
-    {uploadingPhoto === col.id && (
-      <p className="text-sm text-indigo-500 mt-2">
-        Uploading...
-      </p>
-    )}
+              {uploadingPhoto === col.id && (
+                <p className="text-sm text-indigo-500 mt-2">
+                  Uploading...
+                </p>
+              )}
 
-    {formData[col.id] && uploadingPhoto !== col.id && (
-      <div className="mt-3">
-        <img
-          src={formData[col.id]}
-          alt="Uploaded"
-          className="h-24 w-24 object-cover rounded-xl border border-gray-200"
-        />
-      </div>
-    )}
-  </div>
-)}
+              {formData[col.id] && uploadingPhoto !== col.id && (
+                <div className="mt-3">
+                  <img
+                    src={formData[col.id]}
+                    alt="Uploaded"
+                    className="h-24 w-24 object-cover rounded-xl border border-gray-200"
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ))}
 

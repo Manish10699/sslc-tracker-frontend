@@ -10,13 +10,15 @@ function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
+const API_BASE = import.meta.env.DEV
+  ? 'http://127.0.0.1:8000/api'
+  : 'https://sslc-tracker.onrender.com/api';
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const response = await axios.post('https://sslc-tracker.onrender.com/api/token/', {
+      const response = await axios.post(`${API_BASE}/token/`, {
         username,
         password,
       });

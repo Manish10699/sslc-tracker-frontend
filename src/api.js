@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getAccessToken, getRefreshToken, saveTokens, clearTokens } from './auth';
 
 const api = axios.create({
-  baseURL: 'https://sslc-tracker.onrender.com/api',
+  baseURL: import.meta.env.DEV ? 'http://127.0.0.1:8000/api': 'https://sslc-tracker.onrender.com/api',
 });
 
 api.interceptors.request.use((config) => {
