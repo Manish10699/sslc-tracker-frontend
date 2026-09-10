@@ -7,12 +7,21 @@ import {
   Send,
   CalendarDays,
   Bell,
+  BellOff,
+  Info,
+  LogOut,
   Menu,
+  MapPin,
   RefreshCw,
+  School,
+  Upload,
+  X,
 } from 'lucide-react';
 
 import api from '../api';
+import { clearTokens } from '../auth';
 import schoolIllustration from '../assets/school-illustration.png';
+import '../notifications.css';
 
 const MONTHS = [
   'May',
@@ -80,7 +89,12 @@ function PointsList() {
 
   const [monthStatus, setMonthStatus] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [notificationFilter, setNotificationFilter] = useState('all');
 
   const navigate = useNavigate();
 
@@ -108,6 +122,12 @@ function PointsList() {
         setLoading(false);
       });
   }, [navigate]);
+
+  useEffect(() => {
+    api.get('/notifications/')
+      .then((res) => setNotifications(res.data))
+      .catch((err) => console.error('Failed to load notifications', err));
+  }, []);
 
   /* -----------------------------
      Load selected month status
@@ -162,6 +182,75 @@ function PointsList() {
 
   const displayName =
     me?.first_name || me?.username || 'HM';
+
+  const unreadCount = notifications.filter((notification) => !notification.is_read).length;
+
+  const markAsRead = async (id) => {
+    try {
+      await api.patch(`/notifications/${id}/`, { is_read: true });
+      setNotifications((previous) => previous.map((notification) => (
+        notification.id === id ? { ...notification, is_read: true } : notification
+      )));
+    } catch (err) {
+      console.error('Failed to mark notification as read', err);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    const unreadNotifications = notifications.filter((notification) => !notification.is_read);
+    if (!unreadNotifications.length) return;
+
+    try {
+      await Promise.all(unreadNotifications.map((notification) => (
+        api.patch(`/notifications/${notification.id}/`, { is_read: true })
+      )));
+      setNotifications((previous) => previous.map((notification) => ({ ...notification, is_read: true })));
+    } catch (err) {
+      console.error('Failed to mark all notifications as read', err);
+    }
+  };
+
+  const visibleNotifications = notifications.filter((notification) => {
+    if (notificationFilter === 'all') return true;
+    return notification.message?.toLowerCase().includes(notificationFilter);
+  });
+
+  const notificationVisual = (notification) => {
+    const message = notification.message?.toLowerCase() || '';
+    if (message.includes('verif')) return { title: 'Report verified', icon: CheckCircle2, tone: 'verified' };
+    if (message.includes('submit')) return { title: 'Report submitted', icon: Upload, tone: 'submitted' };
+    if (message.includes('remind')) return { title: 'Reminder', icon: CalendarDays, tone: 'reminder' };
+    return { title: 'New update', icon: Info, tone: 'update' };
+  };
+
+  const handleLogout = () => {
+    clearTokens();
+    navigate('/login');
+  };
+
+  const refreshDashboard = async () => {
+    if (refreshing) return;
+
+    setRefreshing(true);
+    setError('');
+    try {
+      const [pointsRes, meRes, statusRes, notificationsRes] = await Promise.all([
+        api.get('/points/'),
+        api.get('/me/'),
+        api.get(`/month-status/?month=${selectedMonth}`),
+        api.get('/notifications/'),
+      ]);
+      setPoints(pointsRes.data);
+      setMe(meRes.data);
+      setMonthStatus(statusRes.data);
+      setNotifications(notificationsRes.data);
+    } catch (err) {
+      console.error('Failed to refresh dashboard', err);
+      setError('Could not refresh the dashboard. Please try again.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   /* -----------------------------
      Submit report
@@ -302,6 +391,9 @@ function PointsList() {
 
           <button
             type="button"
+            onClick={() => setShowMenu(true)}
+            aria-label="Open menu"
+            aria-expanded={showMenu}
             className="
               w-12 h-12
               rounded-2xl
@@ -334,39 +426,27 @@ function PointsList() {
 
           {/* Notification */}
 
-          <button
-            type="button"
-            className="
-              relative
-              w-12 h-12
-              rounded-2xl
-              bg-[#f8f8fc]
-              shadow-[6px_6px_14px_#dcdce5,-6px_-6px_14px_#ffffff]
-              flex items-center justify-center
-              text-gray-600
-            "
-          >
-            <Bell size={22} />
-
-            {/* Notification badge */}
-
-            <span
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowNotifications((previous) => !previous)}
+              aria-label="Notifications"
+              aria-expanded={showNotifications}
               className="
-                absolute -top-1 -right-1
-                min-w-[18px] h-[18px]
-                px-1
-                rounded-full
-                bg-red-500
-                text-white
-                text-[10px]
-                font-bold
-                flex items-center justify-center
+                relative w-12 h-12 rounded-2xl bg-[#f8f8fc]
+                shadow-[6px_6px_14px_#dcdce5,-6px_-6px_14px_#ffffff]
+                flex items-center justify-center text-gray-600 transition hover:text-indigo-600
               "
             >
-              3
-            </span>
+              <Bell size={22} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
 
-          </button>
+          </div>
 
         </div>
 
@@ -588,21 +668,19 @@ function PointsList() {
 
           <button
             type="button"
-            onClick={() => {
-              api
-                .get(`/month-status/?month=${selectedMonth}`)
-                .then((res) => setMonthStatus(res.data));
-            }}
+            onClick={refreshDashboard}
+            disabled={refreshing}
+            aria-label="Refresh dashboard"
             className="
               w-14 h-14
               rounded-2xl
               bg-[#f8f8fc]
               flex items-center justify-center
               shadow-[6px_6px_14px_#dcdce5,-6px_-6px_14px_#ffffff]
-              text-gray-500
+              text-gray-500 disabled:cursor-wait disabled:opacity-70
             "
           >
-            <RefreshCw size={20} />
+            <RefreshCw size={20} className={refreshing ? 'animate-spin' : ''} />
 
           </button>
 
@@ -852,6 +930,81 @@ function PointsList() {
         )}
 
       </main>
+
+      {showMenu && (
+        <div className="account-menu-layer" role="dialog" aria-modal="true" aria-label="School account menu">
+          <button className="account-menu-backdrop" type="button" aria-label="Close menu" onClick={() => setShowMenu(false)} />
+          <aside className="account-menu-drawer">
+            <button className="account-menu-close" type="button" onClick={() => setShowMenu(false)} aria-label="Close menu"><X size={29} /></button>
+            <div className="account-school-mark"><School size={72} strokeWidth={1.7} /></div>
+            <h2>{me?.school?.name || 'School'}</h2>
+            <p className="account-type">School Account</p>
+
+            <div className="account-details">
+              <div><span className="account-detail-icon"><MapPin size={28} fill="currentColor" /></span><p><small>District</small><strong>{me?.school?.district || 'Not available'}</strong></p></div>
+              <div><span className="account-detail-icon"><School size={27} /></span><p><small>Taluk</small><strong>{me?.school?.taluk || 'Not available'}</strong></p></div>
+            </div>
+
+            <div className="account-menu-divider" />
+            <button className="account-logout" type="button" onClick={handleLogout}><LogOut size={30} /> Logout</button>
+          </aside>
+        </div>
+      )}
+
+      {showNotifications && (
+        <div className="notification-layer" role="dialog" aria-modal="true" aria-label="Notifications">
+          <button className="notification-backdrop" type="button" aria-label="Close notifications" onClick={() => setShowNotifications(false)} />
+          <aside className="notification-drawer">
+            <div className="drawer-handle" />
+            <header className="notification-heading">
+              <h2>Notifications</h2>
+              <button type="button" onClick={() => setShowNotifications(false)} aria-label="Close notifications"><X size={26} /></button>
+            </header>
+
+            <div className="notification-tabs" role="tablist" aria-label="Notification categories">
+              {['all', 'verified', 'submitted'].map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  role="tab"
+                  aria-selected={notificationFilter === filter}
+                  onClick={() => setNotificationFilter(filter)}
+                  className={notificationFilter === filter ? 'active' : ''}
+                >
+                  {filter === 'all' ? 'All' : `${filter[0].toUpperCase()}${filter.slice(1)}`}
+                </button>
+              ))}
+            </div>
+
+            <div className="notification-items">
+              {visibleNotifications.length === 0 ? (
+                <div className="notification-empty"><BellOff size={33} /><p>No notifications yet.</p></div>
+              ) : visibleNotifications.map((notification) => {
+                const visual = notificationVisual(notification);
+                const Icon = visual.icon;
+                return <button
+                  key={notification.id}
+                  type="button"
+                  onClick={() => !notification.is_read && markAsRead(notification.id)}
+                  className={`notification-card notification-${visual.tone} ${notification.is_read ? 'is-read' : ''}`}
+                >
+                  <span className="notification-icon"><Icon size={27} /></span>
+                  <span className="notification-copy">
+                    <strong>{visual.title}</strong>
+                    <span>{notification.message}</span>
+                    <time>{new Date(notification.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</time>
+                  </span>
+                  <ChevronRight className="notification-arrow" size={23} />
+                </button>;
+              })}
+            </div>
+
+            <button type="button" className="mark-all-read" onClick={markAllAsRead} disabled={unreadCount === 0}>
+              <BellOff size={20} /> Mark all as read
+            </button>
+          </aside>
+        </div>
+      )}
 
 
       {/* =========================

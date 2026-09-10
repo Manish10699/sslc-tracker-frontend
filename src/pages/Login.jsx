@@ -13,23 +13,24 @@ function Login() {
 const API_BASE = import.meta.env.DEV
   ? 'http://127.0.0.1:8000/api'
   : 'https://sslc-tracker.onrender.com/api';
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const response = await axios.post(`${API_BASE}/token/`, {
-        username,
-        password,
-      });
-      saveTokens(response.data.access, response.data.refresh);
-      navigate('/points');
-    } catch (err) {
-      setError('Invalid username or password');
-    } finally {
-      setLoading(false);
-    }
-  };
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+  setLoading(true);
+  try {
+    const response = await axios.post(`${API_BASE}/token/`, { username, password });
+    saveTokens(response.data.access, response.data.refresh);
+
+    const meResponse = await axios.get(`${API_BASE}/me/`, {
+      headers: { Authorization: `Bearer ${response.data.access}` },
+    });
+    navigate(meResponse.data.role === 'admin' ? '/admin' : '/points');
+  } catch (err) {
+    setError('Invalid username or password');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
