@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, Check, Clock3, School, ChevronRight, ChevronDown,
-  CalendarDays, UserRound, MapPin, Building2, X, LogOut,
+  CalendarDays, UserRound, MapPin, Building2, X, LogOut, Download,
 } from 'lucide-react';
 import api from '../api';
 import { clearTokens } from '../auth';
@@ -47,6 +47,20 @@ function AdminDashboard() {
     navigate('/login');
   };
 
+  const handleConsolidatedDownload = async () => {
+    const response = await api.get(`/admin/consolidated-export/?month=${selectedMonth}`, {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Consolidated_${selectedMonth}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
   const filteredSchools = data?.schools?.filter((school) => {
     const matchesSearch = school.name.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'all'
@@ -75,6 +89,9 @@ function AdminDashboard() {
           <section className="dashboard-filters" aria-label="School filters">
             <label className="select-control"><CalendarDays size={29} /><select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} aria-label="Month">{MONTHS.map((month) => <option key={month} value={month}>{month}</option>)}</select><ChevronDown className="select-chevron" size={27} /></label>
             <label className="select-control"><School size={29} /><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="School status"><option value="all">All Schools</option><option value="submitted">Submitted</option><option value="pending">Pending</option></select><ChevronDown className="select-chevron" size={27} /></label>
+            <button type="button" onClick={handleConsolidatedDownload} className="flex items-center gap-2 bg-indigo-600 text-white font-semibold px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition mt-4">
+              <Download size={18} /> Download Consolidated Report
+            </button>
           </section>
 
           <label className="dashboard-search"><Search size={34} /><input type="search" placeholder="Search schools..." value={search} onChange={(e) => setSearch(e.target.value)} /></label>

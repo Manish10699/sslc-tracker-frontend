@@ -22,6 +22,7 @@ import api from '../api';
 import { clearTokens } from '../auth';
 import schoolIllustration from '../assets/school-illustration.png';
 import '../notifications.css';
+import NotificationModal from '../components/NotificationModal';
 
 const MONTHS = [
   'May',
@@ -92,9 +93,11 @@ function PointsList() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [notifications, setNotifications] = useState([]);
+  const [popupNotification, setPopupNotification] = useState(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState('all');
+  
 
   const navigate = useNavigate();
 
@@ -124,10 +127,21 @@ function PointsList() {
   }, [navigate]);
 
   useEffect(() => {
-    api.get('/notifications/')
-      .then((res) => setNotifications(res.data))
-      .catch((err) => console.error('Failed to load notifications', err));
-  }, []);
+  api.get('/notifications/')
+    .then((res) => {
+      setNotifications(res.data);
+
+      const firstUnread = res.data.find(
+  (n) => !n.is_read && n.message.toLowerCase().startsWith('reminder for')
+);
+      if (firstUnread) {
+        setPopupNotification(firstUnread);
+      }
+    })
+    .catch((error) => {
+      console.error('Failed to load notifications', error);
+    });
+}, []);
 
   /* -----------------------------
      Load selected month status
@@ -195,6 +209,32 @@ function PointsList() {
       console.error('Failed to mark notification as read', err);
     }
   };
+  const dismissPopup = async () => {
+  if (!popupNotification) return;
+
+  try {
+    await markAsRead(popupNotification.id);
+
+    const updatedNotifications = notifications.map((n) =>
+      n.id === popupNotification.id
+        ? { ...n, is_read: true }
+        : n
+    );
+
+    setNotifications(updatedNotifications);
+
+    const nextUnread = updatedNotifications.find(
+  (n) =>
+    !n.is_read &&
+    n.message.toLowerCase().startsWith('reminder for')
+);
+
+    setPopupNotification(nextUnread || null);
+
+  } catch (error) {
+    console.error('Failed to mark notification as read', error);
+  }
+};
 
   const markAllAsRead = async () => {
     const unreadNotifications = notifications.filter((notification) => !notification.is_read);
@@ -1196,6 +1236,13 @@ function PointsList() {
 
         </div>
       )}
+
+      {popupNotification && (
+      <NotificationModal
+        message={popupNotification.message}
+        onDismiss={dismissPopup}
+      />
+    )}
 
     </div>
   );
