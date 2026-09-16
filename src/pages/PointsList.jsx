@@ -1254,7 +1254,7 @@ function PointsList() {
           />
           <section className="relative w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl sm:p-8">
             <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
-              <Send size={26} />
+              <Send size={22} />
             </div>
             <h2 id="submit-report-title" className="text-xl font-bold text-slate-900">
               Submit {selectedMonth} report?
