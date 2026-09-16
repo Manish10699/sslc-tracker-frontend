@@ -90,6 +90,7 @@ function PointsList() {
 
   const [monthStatus, setMonthStatus] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [notifications, setNotifications] = useState([]);
@@ -306,14 +307,6 @@ function PointsList() {
     return;
   }
 
-  const confirmed = window.confirm(
-    `Submit ${selectedMonth}'s report?\n\nOnce submitted, this month's entries will be locked and cannot be edited.`
-  );
-
-  if (!confirmed) {
-    return;
-  }
-
   setSubmitting(true);
   setError('');
 
@@ -350,6 +343,7 @@ function PointsList() {
     );
 
     setMonthStatus(statusResponse.data);
+    setShowSubmitConfirm(false);
 
   } catch (err) {
     console.error('Submission failed:', err);
@@ -1073,7 +1067,7 @@ function PointsList() {
   >
     <button
       type="button"
-      onClick={handleSubmit}
+      onClick={() => setShowSubmitConfirm(true)}
       disabled={submitting}
       className="
         w-full
@@ -1243,6 +1237,52 @@ function PointsList() {
         onDismiss={dismissPopup}
       />
     )}
+
+      {showSubmitConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-5"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="submit-report-title"
+          aria-describedby="submit-report-description"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
+            aria-label="Close submit report confirmation"
+            onClick={() => !submitting && setShowSubmitConfirm(false)}
+          />
+          <section className="relative w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl sm:p-8">
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
+              <Send size={26} />
+            </div>
+            <h2 id="submit-report-title" className="text-xl font-bold text-slate-900">
+              Submit {selectedMonth} report?
+            </h2>
+            <p id="submit-report-description" className="mt-3 text-sm leading-6 text-slate-600">
+              Your completed report will be submitted and downloaded as an Excel file. Once submitted, this month&apos;s entries will be locked and cannot be edited.
+            </p>
+            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setShowSubmitConfirm(false)}
+                disabled={submitting}
+                className="rounded-xl px-5 py-3 font-semibold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-60"
+              >
+                {submitting ? 'Submitting…' : 'Submit report'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
     </div>
   );
