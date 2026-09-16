@@ -12,13 +12,17 @@ function Register() {
   const [loading, setLoading] = useState(false);
 
   const handleChange = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
+  const API_BASE = import.meta.env.DEV
+  ? 'http://127.0.0.1:8000/api'
+  : 'https://sslc-tracker.onrender.com/api';
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await axios.post('http://127.0.0.1:8000/api/register/', form);
+      await axios.post(`${API_BASE}/register/`, form);
       setSubmitted(true);
     } catch (err) {
       const data = err.response?.data;
