@@ -3,6 +3,8 @@ import { useNavigate,Link } from 'react-router-dom';
 import axios from 'axios';
 import { School } from 'lucide-react';
 import { saveTokens } from '../auth';
+import { subscribeToPush } from '../pushNotifications';
+import { savePushSubscription } from '../api';
 
 function Login() {
   const [username, setUsername] = useState('');
@@ -20,6 +22,23 @@ const API_BASE = import.meta.env.DEV
   try {
     const response = await axios.post(`${API_BASE}/token/`, { username, password });
     saveTokens(response.data.access, response.data.refresh);
+
+    try {
+      const subscription = await subscribeToPush();
+
+      if (subscription) {
+  console.log("PUSH SUBSCRIPTION:", subscription);
+
+  await savePushSubscription(
+    subscription,
+    response.data.access
+  );
+
+        console.log('Push subscription saved successfully');
+      }
+    } catch (pushError) {
+      console.error('Push notification setup failed:', pushError);
+    }
 
     const meResponse = await axios.get(`${API_BASE}/me/`, {
       headers: { Authorization: `Bearer ${response.data.access}` },
