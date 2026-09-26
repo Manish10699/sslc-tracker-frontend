@@ -58,7 +58,7 @@ const API_BASE = import.meta.env.DEV
           <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <School className="text-white" size={28} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900"> Programme Tracker</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Shala29</h1>
           <p className="text-gray-500 mt-1">Sign in to continue</p>
         </div>
 

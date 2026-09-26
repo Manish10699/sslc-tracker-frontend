@@ -46,6 +46,10 @@ function getCurrentMonthName() {
   });
 }
 
+function isNotificationRead(notification) {
+  return notification.is_read === true || notification.is_read === 'true';
+}
+
 /* -----------------------------
    Circular Progress Component
 ------------------------------ */
@@ -133,7 +137,7 @@ function PointsList() {
       setNotifications(res.data);
 
       const firstUnread = res.data.find(
-  (n) => !n.is_read && n.message.toLowerCase().startsWith('reminder for')
+  (n) => !isNotificationRead(n) && n.message.toLowerCase().startsWith('reminder for')
 );
       if (firstUnread) {
         setPopupNotification(firstUnread);
@@ -198,14 +202,15 @@ function PointsList() {
   const displayName =
     me?.first_name || me?.username || 'HM';
 
-  const unreadCount = notifications.filter((notification) => !notification.is_read).length;
+  const unreadCount = notifications.filter((notification) => !isNotificationRead(notification)).length;
 
   const markAsRead = async (id) => {
+    setNotifications((previous) => previous.map((notification) => (
+      notification.id === id ? { ...notification, is_read: true } : notification
+    )));
+
     try {
       await api.patch(`/notifications/${id}/`, { is_read: true });
-      setNotifications((previous) => previous.map((notification) => (
-        notification.id === id ? { ...notification, is_read: true } : notification
-      )));
     } catch (err) {
       console.error('Failed to mark notification as read', err);
     }
@@ -226,7 +231,7 @@ function PointsList() {
 
     const nextUnread = updatedNotifications.find(
   (n) =>
-    !n.is_read &&
+    !isNotificationRead(n) &&
     n.message.toLowerCase().startsWith('reminder for')
 );
 
@@ -238,14 +243,15 @@ function PointsList() {
 };
 
   const markAllAsRead = async () => {
-    const unreadNotifications = notifications.filter((notification) => !notification.is_read);
+    const unreadNotifications = notifications.filter((notification) => !isNotificationRead(notification));
     if (!unreadNotifications.length) return;
+
+    setNotifications((previous) => previous.map((notification) => ({ ...notification, is_read: true })));
 
     try {
       await Promise.all(unreadNotifications.map((notification) => (
         api.patch(`/notifications/${notification.id}/`, { is_read: true })
       )));
-      setNotifications((previous) => previous.map((notification) => ({ ...notification, is_read: true })));
     } catch (err) {
       console.error('Failed to mark all notifications as read', err);
     }
@@ -417,9 +423,11 @@ function PointsList() {
           HEADER
       ========================== */}
 
-      <header className="px-5 pt-5 md:px-8 md:pt-8">
+      <header className="sticky top-0 z-30 w-full overflow-hidden bg-gradient-to-r from-indigo-950 via-indigo-700 to-violet-600 px-5 py-4 shadow-[0_5px_18px_rgba(49,46,129,0.28)] md:px-8 md:py-5">
+        <div aria-hidden="true" className="absolute -right-10 -top-14 h-36 w-36 rounded-full bg-white/10" />
+        <div aria-hidden="true" className="absolute right-28 top-9 h-16 w-16 rounded-full bg-violet-300/20" />
 
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <div className="relative z-10 mx-auto flex w-full items-center justify-between">
 
           {/* Menu */}
 
@@ -429,13 +437,14 @@ function PointsList() {
             aria-label="Open menu"
             aria-expanded={showMenu}
             className="
-              w-12 h-12
-              rounded-2xl
-              bg-[#f8f8fc]
-              shadow-[6px_6px_14px_#dcdce5,-6px_-6px_14px_#ffffff]
+              w-11 h-11
+              rounded-xl
+              bg-white/15
+              border border-white/20
+              shadow-sm backdrop-blur-sm
               flex items-center justify-center
-              text-gray-600
-              hover:text-indigo-600
+              text-white
+              hover:bg-white/25
               transition
             "
           >
@@ -444,17 +453,18 @@ function PointsList() {
 
           {/* Title */}
 
-          <div className="flex-1 px-4">
+          <div className="absolute left-1/2 w-[calc(100%-140px)] -translate-x-1/2 px-3 text-center">
+            <div className="min-w-0">
+              <h1 className="text-xl font-extrabold tracking-tight text-white md:text-2xl">
+                Shala<span className="text-indigo-100">29</span>
+              </h1>
 
-            <h1 className="text-lg md:text-2xl font-bold">
-              29-Point Programme Tracker
-            </h1>
-
-            {me?.school?.name && (
-              <p className="text-sm md:text-base text-gray-500 mt-1">
-                {me.school.name}
-              </p>
-            )}
+              {me?.school?.name && (
+                <p className="truncate text-xs font-medium text-indigo-100 md:text-sm">
+                  {me.school.name}
+                </p>
+              )}
+            </div>
 
           </div>
 
@@ -467,9 +477,9 @@ function PointsList() {
               aria-label="Notifications"
               aria-expanded={showNotifications}
               className="
-                relative w-12 h-12 rounded-2xl bg-[#f8f8fc]
-                shadow-[6px_6px_14px_#dcdce5,-6px_-6px_14px_#ffffff]
-                flex items-center justify-center text-gray-600 transition hover:text-indigo-600
+                relative w-11 h-11 rounded-xl bg-white/15 border border-white/20
+                shadow-sm backdrop-blur-sm
+                flex items-center justify-center text-white transition hover:bg-white/25
               "
             >
               <Bell size={22} />
@@ -1019,8 +1029,8 @@ function PointsList() {
                 return <button
                   key={notification.id}
                   type="button"
-                  onClick={() => !notification.is_read && markAsRead(notification.id)}
-                  className={`notification-card notification-${visual.tone} ${notification.is_read ? 'is-read' : ''}`}
+                  onClick={() => !isNotificationRead(notification) && markAsRead(notification.id)}
+                  className={`notification-card notification-${visual.tone} ${isNotificationRead(notification) ? 'is-read' : ''}`}
                 >
                   <span className="notification-icon"><Icon size={27} /></span>
                   <span className="notification-copy">

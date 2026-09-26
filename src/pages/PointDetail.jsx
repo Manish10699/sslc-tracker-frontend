@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Plus, MoreVertical, Pencil, Trash2, Calendar, ChevronDown, Download } from 'lucide-react';
 import api from '../api';
@@ -22,6 +22,7 @@ function PointDetail() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
   const [isLocked, setIsLocked] = useState(false);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     Promise.all([
@@ -41,6 +42,19 @@ function PointDetail() {
     if (!currentMonth) return;
     api.get(`/month-status/?month=${currentMonth}`).then((res) => setIsLocked(res.data.is_locked));
   }, [currentMonth]);
+
+  useEffect(() => {
+    if (!openMenuId) return;
+
+    const closeMenuOnOutsideClick = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenMenuId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', closeMenuOnOutsideClick);
+    return () => document.removeEventListener('mousedown', closeMenuOnOutsideClick);
+  }, [openMenuId]);
 
   const refreshEntries = (message) => {
     api.get(`/entries/?point=${pointNo}&month=${currentMonth}`).then((res) => setEntries(res.data));
@@ -381,31 +395,31 @@ function PointDetail() {
 
                   {/* Three dots - hide completely when locked */}
                   {!isLocked && (
-                    <button
-                      onClick={() =>
-                        setOpenMenuId(
-                          openMenuId === entry.id ? null : entry.id
-                        )
-                      }
-                      className="
-                      w-10 h-10
-                      flex items-center justify-center
-                      rounded-xl
-                      bg-[#eef1f7]
-                      text-slate-400
-                      shadow-[-3px_-3px_6px_rgba(255,255,255,0.8),3px_3px_6px_rgba(163,177,198,0.25)]
-                      hover:text-indigo-600
-                      transition
-                    "
-                    >
-                      <MoreVertical size={18} />
-                    </button>
-                  )}
+                    <div ref={openMenuId === entry.id ? menuRef : null}>
+                      <button
+                        onClick={() =>
+                          setOpenMenuId(
+                            openMenuId === entry.id ? null : entry.id
+                          )
+                        }
+                        className="
+                        w-10 h-10
+                        flex items-center justify-center
+                        rounded-xl
+                        bg-[#eef1f7]
+                        text-slate-400
+                        shadow-[-3px_-3px_6px_rgba(255,255,255,0.8),3px_3px_6px_rgba(163,177,198,0.25)]
+                        hover:text-indigo-600
+                        transition
+                      "
+                      >
+                        <MoreVertical size={18} />
+                      </button>
 
-                  {/* Dropdown */}
-                  {openMenuId === entry.id && !isLocked && (
-                    <div
-                      className="
+                      {/* Dropdown */}
+                      {openMenuId === entry.id && (
+                        <div
+                          className="
                       absolute
                       right-5
                       top-16
@@ -417,8 +431,8 @@ function PointDetail() {
                       z-20
                       shadow-[0_12px_30px_rgba(15,23,42,0.15)]
                     "
-                    >
-                      <button
+                        >
+                          <button
                         onClick={() => {
                           setEditingEntry(entry);
                           setShowForm(true);
@@ -438,9 +452,9 @@ function PointDetail() {
                       >
                         <Pencil size={15} />
                         Edit
-                      </button>
+                          </button>
 
-                      <button
+                          <button
                         onClick={() => {
                           setDeleteTarget(entry.id);
                           setOpenMenuId(null);
@@ -458,7 +472,9 @@ function PointDetail() {
                       >
                         <Trash2 size={15} />
                         Delete
-                      </button>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -477,7 +493,7 @@ function PointDetail() {
                       py-2
                     "
                     >
-                      <span className="text-sm text-slate-500 leading-relaxed">
+                      <span className="min-w-0 flex-1 text-sm text-slate-500 leading-relaxed">
                         {col.label_kn}
                       </span>
 
@@ -488,7 +504,14 @@ function PointDetail() {
                         text-slate-800
                         text-right
                         leading-relaxed
+                        block
+                        min-w-0
+                        max-w-[55%]
+                        truncate
                       "
+                        title={col.id === 'month'
+                          ? (entry.month ?? '-')
+                          : (entry.data[col.id] ?? '-')}
                       >
                         {col.id === 'month'
                           ? (entry.month ?? '-')
