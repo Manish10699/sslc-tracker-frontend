@@ -49,6 +49,16 @@ function EntryForm({ point, month, existingEntry, onSaved, onCancel }) {
       }));
       return;
     }
+    const [customMode, setCustomMode] = useState(() => {
+  const initial = {};
+  if (existingEntry) {
+    point.columns.forEach((col) => {
+      const v = existingEntry.data[col.id];
+      if (col.suggestions && v && !col.suggestions.includes(v)) initial[col.id] = true;
+    });
+  }
+  return initial;
+});
 
     setPhotoErrors((prev) => ({ ...prev, [id]: null }));
     setUploadingPhoto(id);
@@ -158,30 +168,38 @@ const handleSubmit = async (e) => {
 
           {col.type === 'text' && col.suggestions && (
   <>
-    <input
-      type="text"
-      list={`${col.id}-options`}
+    <select
       required={col.required !== false}
-      value={formData[col.id] || ''}
-      onChange={(e) => handleChange(col.id, e.target.value)}
-      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-    />
-    <datalist id={`${col.id}-options`}>
+      value={customMode[col.id] ? '__other__' : (formData[col.id] || '')}
+      onChange={(e) => {
+        if (e.target.value === '__other__') {
+          setCustomMode((prev) => ({ ...prev, [col.id]: true }));
+          handleChange(col.id, '');
+        } else {
+          setCustomMode((prev) => ({ ...prev, [col.id]: false }));
+          handleChange(col.id, e.target.value);
+        }
+      }}
+      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    >
+      <option value="" disabled>Select</option>
       {col.suggestions.map((s) => (
-        <option key={s} value={s} />
+        <option key={s} value={s}>{s}</option>
       ))}
-    </datalist>
-  </>
-)}
+      <option value="__other__">Add new…</option>
+    </select>
 
-{col.type === 'text' && !col.suggestions && (
-  <textarea
-    required={col.required !== false}
-    value={formData[col.id] || ''}
-    onChange={(e) => handleChange(col.id, e.target.value)}
-    rows={2}
-    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-  />
+    {customMode[col.id] && (
+      <input
+        type="text"
+        required
+        placeholder="Type here"
+        value={formData[col.id] || ''}
+        onChange={(e) => handleChange(col.id, e.target.value)}
+        className="w-full mt-2 px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      />
+    )}
+  </>
 )}
 
           {col.type === 'date' && (
