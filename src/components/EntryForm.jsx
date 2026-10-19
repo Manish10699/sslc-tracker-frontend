@@ -156,15 +156,33 @@ const handleSubmit = async (e) => {
             />
           )}
 
-          {col.type === 'text' && (
-            <textarea
-              required={col.required !== false}
-              value={formData[col.id] || ''}
-              onChange={(e) => handleChange(col.id, e.target.value)}
-              rows={2}
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          )}
+          {col.type === 'text' && col.suggestions && (
+  <>
+    <input
+      type="text"
+      list={`${col.id}-options`}
+      required={col.required !== false}
+      value={formData[col.id] || ''}
+      onChange={(e) => handleChange(col.id, e.target.value)}
+      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    />
+    <datalist id={`${col.id}-options`}>
+      {col.suggestions.map((s) => (
+        <option key={s} value={s} />
+      ))}
+    </datalist>
+  </>
+)}
+
+{col.type === 'text' && !col.suggestions && (
+  <textarea
+    required={col.required !== false}
+    value={formData[col.id] || ''}
+    onChange={(e) => handleChange(col.id, e.target.value)}
+    rows={2}
+    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+  />
+)}
 
           {col.type === 'date' && (
             <input
@@ -175,6 +193,15 @@ const handleSubmit = async (e) => {
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           )}
+          {col.type === 'time' && (
+  <input
+    type="time"
+    required={col.required !== false}
+    value={formData[col.id] || ''}
+    onChange={(e) => handleChange(col.id, e.target.value)}
+    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+  />
+)}
 
           {col.type === 'yes_no' && (
             <div className="flex gap-3">
