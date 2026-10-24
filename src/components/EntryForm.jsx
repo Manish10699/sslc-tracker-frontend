@@ -142,7 +142,9 @@ const handleSubmit = async (e) => {
 </div>
       
 
-      {point.columns.map((col) => (
+      {point.columns.map((col) => {
+        console.log(col.id, JSON.stringify(col.type), col.suggestions);
+        return (
         <div key={col.id}>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             {col.label_kn}
@@ -314,7 +316,8 @@ const handleSubmit = async (e) => {
             </div>
           )}
         </div>
-      ))}
+        );
+      })}
 
       <div className="flex gap-3 pt-2">
         <button
