@@ -204,6 +204,16 @@ const handleSubmit = async (e) => {
   </>
 )}
 
+          {col.type === 'text' && !col.suggestions && (
+            <textarea
+              required={col.required !== false}
+              value={formData[col.id] || ''}
+              onChange={(e) => handleChange(col.id, e.target.value)}
+              rows={2}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          )}
+
           {col.type === 'date' && (
             <input
               type="date"
