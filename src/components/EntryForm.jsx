@@ -17,6 +17,17 @@ function EntryForm({ point, month, existingEntry, onSaved, onCancel }) {
     return { month };
   });
 
+      const [customMode, setCustomMode] = useState(() => {
+  const initial = {};
+  if (existingEntry) {
+    point.columns.forEach((col) => {
+      const v = existingEntry.data[col.id];
+      if (col.suggestions && v && !col.suggestions.includes(v)) initial[col.id] = true;
+    });
+  }
+  return initial;
+});
+
   useEffect(() => {
     const updates = {};
     point.columns.forEach((col) => {
@@ -49,16 +60,7 @@ function EntryForm({ point, month, existingEntry, onSaved, onCancel }) {
       }));
       return;
     }
-    const [customMode, setCustomMode] = useState(() => {
-  const initial = {};
-  if (existingEntry) {
-    point.columns.forEach((col) => {
-      const v = existingEntry.data[col.id];
-      if (col.suggestions && v && !col.suggestions.includes(v)) initial[col.id] = true;
-    });
-  }
-  return initial;
-});
+
 
     setPhotoErrors((prev) => ({ ...prev, [id]: null }));
     setUploadingPhoto(id);
